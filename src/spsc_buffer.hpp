@@ -7,10 +7,8 @@
 
 namespace arctic {
 
-/**
- * A lock-free Single-Producer Single-Consumer (SPSC) ring buffer.
- * Capacity must be a power of two to optimize modulo via bitwise AND.
- */
+// spsc ring buffer. fast as hell, lock free.
+// capacity MUST be power of two or bitwise math explodes.
 template <typename T>
 class SPSCBuffer {
 public:
@@ -60,7 +58,7 @@ private:
 #pragma warning(disable: 4324)
 #endif
 
-    // Align to cache lines to prevent false sharing
+    // alignas 64 so core 0 and core 1 don't fight over the same cache line
     alignas(64) std::atomic<size_t> head_;
     alignas(64) std::atomic<size_t> tail_;
 

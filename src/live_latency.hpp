@@ -7,30 +7,33 @@
 
 namespace arctic {
 
-/**
- * Manages the live background measurement of UDP round-trip latency
- * and continuous online MLE fitting of the Log-Normal distribution.
- */
+// runs a background thread to ping loopback and fit the variance
+// jitter is gonna look high because it's local but good for testing the math
 class LiveLatency {
 public:
     LiveLatency(const std::string& target_ip, int target_port, size_t buffer_capacity = 1024);
     ~LiveLatency();
 
-    // Start background threads
+    // boot threads
     void start();
     
-    // Stop background threads gracefully
+    // kill threads
     void stop();
 
-    // Atomically read the latest fitted parameters
-    double get_mu() const { return mu_.load(std::memory_order_seq_cst); }
-    double get_sigma() const { return sigma_.load(std::memory_order_seq_cst); }
+    // get mu safely
+    double get_mu() const { return mu_.load(std::memory_order_acquire); }
+    
+    // get sigma safely
+    double get_sigma() const { return sigma_.load(std::memory_order_acquire); }
+
+    // valid samples
+    size_t get_sample_count() const { return sample_count_.load(std::memory_order_acquire); }
 
 private:
     void udp_measurement_loop();
     void mle_fitting_loop();
     
-    // Cross platform precision timer
+    // nano timer
     double get_time_ns() const;
 
     std::string target_ip_;
@@ -38,7 +41,7 @@ private:
     
     std::atomic<bool> running_;
     
-    // SPSC buffer for passing measured RTTs (in seconds) to the fitting thread
+    // lock-free pipe for rtt data
     SPSCBuffer<double> rtt_buffer_;
     
     std::thread udp_thread_;
@@ -49,9 +52,10 @@ private:
 #pragma warning(disable: 4324)
 #endif
 
-    // Fitted parameters
+    // padded to avoid cache thrashing
     alignas(64) std::atomic<double> mu_;
     alignas(64) std::atomic<double> sigma_;
+    alignas(64) std::atomic<size_t> sample_count_;
 
 #ifdef _MSC_VER
 #pragma warning(pop)
