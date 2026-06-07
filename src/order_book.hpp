@@ -5,33 +5,13 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <cmath>
 
 namespace arctic {
 
-/**
- * Price-Time Priority Limit Order Book (LOB)
- *
- * Implements a flat-array, zero-allocation matching engine suitable for
- * latency-sensitive simulation. Design choices:
- *
- *   1. Tick-based integer prices for O(1) price level lookup via array indexing.
- *      No std::map, no tree traversal, no hash table.
- *
- *   2. Orders stored in a pre-allocated flat pool (PoolAllocator) with
- *      intrusive doubly-linked lists within each price level for O(1)
- *      insertion and cancellation.
- *
- *   3. Best bid/ask tracked explicitly — no linear scan required.
- *
- *   4. All memory pre-allocated at construction. Zero malloc/free during
- *      add/cancel/match operations.
- *
- * Complexity:
- *   - add_order:    O(1)
- *   - cancel_order: O(1)
- *   - match:        O(k) where k = number of fills
- *   - best_bid/ask: O(1)
- */
+// matching engine
+// zero allocs. flat arrays and intrusive lists.
+// ticks as indices so we don't have to binary search std::map like plebs.
 
 struct alignas(32) Order {
     uint32_t id;
@@ -77,7 +57,7 @@ public:
           best_bid_(LOB_NULL),
           best_ask_(LOB_MAX_LEVELS),
           fill_count_(0) {
-        // Zero-initialize all price levels
+        // clear the book
         std::memset(bid_levels_, 0, sizeof(bid_levels_));
         std::memset(ask_levels_, 0, sizeof(ask_levels_));
         for (int i = 0; i < LOB_MAX_LEVELS; ++i) {
@@ -88,24 +68,17 @@ public:
         }
     }
 
-    /**
-     * Convert a continuous price to a tick index.
-     */
+    // double to tick index
     int32_t price_to_ticks(double price) const {
-        return ref_price_ticks_ + static_cast<int32_t>((price - ref_price_) / tick_size_);
+        return ref_price_ticks_ + static_cast<int32_t>(std::round((price - ref_price_) / tick_size_));
     }
 
-    /**
-     * Convert a tick index back to a continuous price.
-     */
+    // tick index back to double
     double ticks_to_price(int32_t ticks) const {
         return ref_price_ + (ticks - ref_price_ticks_) * tick_size_;
     }
 
-    /**
-     * Add a limit order. O(1).
-     * Returns the order ID, or 0 if the pool is exhausted.
-     */
+    // place order (O(1))
     uint32_t add_order(bool is_buy, double price, int32_t quantity) {
         int32_t ticks = price_to_ticks(price);
         if (ticks < 0 || ticks >= LOB_MAX_LEVELS) return 0;
@@ -126,7 +99,7 @@ public:
         PriceLevel* levels = is_buy ? bid_levels_ : ask_levels_;
         PriceLevel& level = levels[ticks];
 
-        // Append to tail of the price level's doubly-linked list (time priority)
+        // push back for time priority
         if (level.tail == LOB_NULL) {
             level.head = idx;
             level.tail = idx;
@@ -139,7 +112,7 @@ public:
         level.total_qty += quantity;
         level.order_count++;
 
-        // Update best bid/ask
+        // update top of book
         if (is_buy && ticks > best_bid_) {
             best_bid_ = ticks;
         }
@@ -150,10 +123,7 @@ public:
         return order->id;
     }
 
-    /**
-     * Cancel an order by pool index. O(1).
-     * Returns true if successfully cancelled.
-     */
+    // cancel order (O(1))
     bool cancel_order_by_index(int32_t idx) {
         if (idx < 0 || idx >= LOB_MAX_ORDERS) return false;
 
@@ -192,20 +162,13 @@ public:
         return true;
     }
 
-    /**
-     * Submit an aggressive (market) order and match against resting liquidity.
-     * Price-time priority: matches at the best available price, oldest orders first.
-     *
-     * @param is_buy     true = buy (crosses asks), false = sell (crosses bids)
-     * @param quantity   Quantity to fill
-     * @return           Number of fills generated (stored in get_fills())
-     */
+    // cross the spread
     int32_t match_market_order(bool is_buy, int32_t quantity) {
         fill_count_ = 0;
         int32_t remaining = quantity;
 
         if (is_buy) {
-            // Buy: match against ask side, starting at best (lowest) ask
+            // walking the book up
             while (remaining > 0 && best_ask_ < LOB_MAX_LEVELS) {
                 PriceLevel& level = ask_levels_[best_ask_];
                 while (remaining > 0 && level.head != LOB_NULL) {
@@ -221,7 +184,7 @@ public:
                     level.total_qty -= fill_qty;
 
                     if (resting->quantity == 0) {
-                        // Fully filled — remove from list
+                        // order dead, yank it
                         int32_t next = resting->next;
                         order_pool_.deallocate_index(level.head);
                         level.head = next;
@@ -239,7 +202,7 @@ public:
                 }
             }
         } else {
-            // Sell: match against bid side, starting at best (highest) bid
+            // walking the book down
             while (remaining > 0 && best_bid_ >= 0) {
                 PriceLevel& level = bid_levels_[best_bid_];
                 while (remaining > 0 && level.head != LOB_NULL) {
@@ -275,16 +238,7 @@ public:
         return fill_count_;
     }
 
-    /**
-     * Populate the book with synthetic market-maker liquidity around a mid price.
-     * Useful for simulation: creates a realistic multi-level book before
-     * the agent submits orders.
-     *
-     * @param mid_price     Current fair value (e.g., from OU process)
-     * @param half_spread   Half-spread in price units
-     * @param num_levels    Number of price levels on each side
-     * @param qty_per_level Quantity at each level
-     */
+    // dump fake liquidity in so we have something to match against
     void seed_liquidity(double mid_price, double half_spread,
                         int num_levels, int32_t qty_per_level) {
         for (int i = 0; i < num_levels; ++i) {
@@ -295,9 +249,7 @@ public:
         }
     }
 
-    /**
-     * Clear all orders and reset the book to empty state.
-     */
+    // wipe the book for the next run
     void clear() {
         for (int i = 0; i < LOB_MAX_LEVELS; ++i) {
             bid_levels_[i] = {LOB_NULL, LOB_NULL, 0, 0};

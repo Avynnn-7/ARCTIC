@@ -15,13 +15,16 @@ public:
     // lowest latency wins the race
     RaceResult resolve_race(double delta_a, double delta_b) const {
         if (delta_a < delta_b) {
-            return {true, false}; // Agent A is faster
+            return {true, false};
         } else if (delta_b < delta_a) {
-            return {false, true}; // Agent B is faster
+            return {false, true};
         }
-        
-        // exact tie. prob zero in continuous time but just in case, nobody gets it.
-        return {false, false}; 
+
+        // Measure-zero in continuous time but float quantisation can produce
+        // exact equality. Resolve with a fair coin so PnL isn't silently dropped.
+        thread_local std::mt19937 rng{std::random_device{}()};
+        thread_local std::bernoulli_distribution coin{0.5};
+        return coin(rng) ? RaceResult{true, false} : RaceResult{false, true};
     }
 };
 

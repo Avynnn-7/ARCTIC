@@ -1,0 +1,353 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   SimulatorHUD.css — Game-style overlay UI
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Top Bar ──────────────────────────────────────────────────────────── */
+.hud-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.hud-topbar-left,
+.hud-topbar-center,
+.hud-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  color: #666;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.hud-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.hud-value.cyan { color: #00f3ff; text-shadow: 0 0 10px rgba(0,243,255,0.5); }
+.hud-value.green { color: #00ff9d; text-shadow: 0 0 10px rgba(0,255,157,0.5); }
+.hud-value.red { color: #ff003c; text-shadow: 0 0 10px rgba(255,0,60,0.5); }
+
+.hud-spread {
+  font-size: 11px;
+  color: #666;
+  margin-left: 5px;
+}
+
+.hud-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  padding: 6px 14px;
+  border: 1px solid rgba(0,243,255,0.4);
+  background: rgba(0,243,255,0.08);
+  color: #00f3ff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 1px;
+}
+
+.hud-btn:hover {
+  background: rgba(0,243,255,0.2);
+  box-shadow: 0 0 15px rgba(0,243,255,0.3);
+  transform: scale(1.05);
+}
+
+.hud-btn-speed {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.03);
+  color: #666;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hud-btn-speed.active {
+  border-color: #00f3ff;
+  color: #00f3ff;
+  background: rgba(0,243,255,0.1);
+  box-shadow: 0 0 10px rgba(0,243,255,0.2);
+}
+
+.hud-btn-speed:hover {
+  color: #fff;
+  border-color: rgba(255,255,255,0.4);
+}
+
+/* ── Leaderboard ──────────────────────────────────────────────────────── */
+.hud-leaderboard {
+  position: absolute;
+  top: 60px;
+  right: 15px;
+  width: 280px;
+  background: rgba(5, 5, 10, 0.75);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 14px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.hud-panel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  color: #888;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-icon {
+  font-size: 14px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  margin-bottom: 3px;
+}
+
+.lb-row:hover, .lb-row.highlighted {
+  background: rgba(255,255,255,0.05);
+  transform: translateX(3px);
+}
+
+.lb-rank {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  color: #555;
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.lb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lb-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  width: 85px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-bar-container {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.lb-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.lb-pnl {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.lb-pnl.positive { color: #00ff9d; }
+.lb-pnl.negative { color: #ff003c; }
+
+/* ── Event Log ────────────────────────────────────────────────────────── */
+.hud-eventlog {
+  position: absolute;
+  bottom: 55px;
+  left: 15px;
+  width: 400px;
+  max-height: 200px;
+  background: rgba(5, 5, 10, 0.75);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 14px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.eventlog-scroll {
+  max-height: 150px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.event-row {
+  padding: 4px 0 4px 10px;
+  border-left: 2px solid #444;
+  margin-bottom: 4px;
+  animation: fadeSlideIn 0.3s ease;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.event-text {
+  font-size: 11px;
+  color: #aaa;
+  line-height: 1.4;
+}
+
+/* ── Agent Detail Panel ───────────────────────────────────────────────── */
+.hud-agent-detail {
+  position: absolute;
+  top: 60px;
+  left: 15px;
+  width: 260px;
+  background: rgba(5, 5, 10, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 16px;
+  z-index: 20;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.agent-detail-header {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.agent-detail-type {
+  font-size: 10px;
+  color: #666;
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+
+.agent-detail-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  color: #ddd;
+  font-weight: 600;
+}
+
+.detail-value.positive { color: #00ff9d; }
+.detail-value.negative { color: #ff003c; }
+
+.energy-bar {
+  width: 80px;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.energy-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ── Bottom Stats Bar ─────────────────────────────────────────────────── */
+.hud-bottombar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 10px 20px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+  z-index: 20;
+}
+
+.bottom-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 9px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  color: #ccc;
+  font-weight: 600;
+}
+
+.stat-value.green { color: #00ff9d; }
+.stat-value.red { color: #ff003c; }

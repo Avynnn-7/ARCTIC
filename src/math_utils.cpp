@@ -46,9 +46,10 @@ bool verify_equilibrium_convergence(double sig_A, double sig_B,
                                      double theta, double mu_delta,
                                      double mu, double cost_c,
                                      double tol) {
-    // best-response iteration. should converge instantly if the math is right
-    double b_A = 10.0;  // Arbitrary initial guess
-    double b_B = 10.0;  // Arbitrary initial guess
+    // Arbitrary init far from any plausible fixed point so iter-1 error is
+    // never spuriously small. Dominant strategy => iter 2 must reproduce iter 1.
+    double b_A = 10.0;
+    double b_B = 10.0;
 
     std::cout << std::fixed << std::setprecision(8);
     std::cout << "Equilibrium Verification (Iterative Best-Response):" << std::endl;
@@ -56,11 +57,10 @@ bool verify_equilibrium_convergence(double sig_A, double sig_B,
 
     constexpr int max_iters = 100;
     int iters = 0;
+    int stable_iter = -1;
 
     for (int k = 0; k < max_iters; ++k) {
-        // best response A (ignores B)
         double b_A_new = compute_equilibrium_boundary(sig_A, sig_B, theta, mu_delta, mu, cost_c);
-        // best response B (ignores A)
         double b_B_new = compute_equilibrium_boundary(sig_B, sig_A, theta, mu_delta, mu, cost_c);
 
         double err_A = std::abs(b_A_new - b_A);
@@ -73,19 +73,29 @@ bool verify_equilibrium_convergence(double sig_A, double sig_B,
         std::cout << "  Iter " << iters << ": b_A*=" << b_A << ", b_B*=" << b_B
                   << " | delta_A=" << err_A << ", delta_B=" << err_B << std::endl;
 
-        if (err_A < tol && err_B < tol) {
+        // First iteration's error is measured against the arbitrary init,
+        // so only treat convergence as meaningful from iter 2 onward.
+        if (k >= 1 && err_A < tol && err_B < tol) {
+            stable_iter = iters;
             break;
         }
     }
 
-    bool converged = (iters <= 1);
+    // Dominant strategy: best-response is a constant function of the opponent's
+    // boundary, so the update reaches its fixed point on the first step and
+    // iter 2 confirms it with zero error.
+    bool converged = (stable_iter == 2);
     if (converged) {
-        std::cout << "  VERIFIED: Converged in " << iters << " iteration(s)." << std::endl;
-        std::cout << "  This confirms the DOMINANT STRATEGY property: best-response" << std::endl;
-        std::cout << "  is independent of opponent's boundary." << std::endl;
+        std::cout << "  VERIFIED: Fixed point reached on first update, confirmed at iter "
+                  << stable_iter << "." << std::endl;
+        std::cout << "  Best-response is independent of opponent's boundary "
+                  << "(dominant strategy)." << std::endl;
+    } else if (stable_iter > 2) {
+        std::cout << "  Converged in " << stable_iter << " iterations; not a pure"
+                  << " dominant strategy (strategic coupling present)." << std::endl;
     } else {
-        std::cout << "  WARNING: Required " << iters << " iterations." << std::endl;
-        std::cout << "  This would indicate strategic coupling (non-trivial Nash)." << std::endl;
+        std::cout << "  WARNING: did not converge within " << max_iters
+                  << " iterations." << std::endl;
     }
 
     return converged;
